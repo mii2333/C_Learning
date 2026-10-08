@@ -1,0 +1,44 @@
+int pin_a=4;
+int pin_b=5;
+int pin_c=19;
+int pin_d=21;
+int pin_e=22;
+int pin_f=2;
+int pin_g=15;
+int pin_dp=18;
+//引脚数组
+int pin_array[8]={pin_a,pin_b,pin_c,pin_d,pin_e,pin_f,pin_g,pin_dp};
+//数字显示逻辑的二维数组
+int num_array[][8]={
+// a b c d e f g dp
+  {1,1,1,1,1,1,0,0},
+  {0,1,1,0,0,0,0,0},
+  {1,1,0,1,1,0,1,0},
+  {1,1,1,1,0,0,1,0},
+  {0,1,1,0,0,1,1,0},
+  {1,0,1,1,0,1,1,0},
+  {1,0,1,1,1,1,1,0},
+  {1,1,1,0,0,0,0,0}, 
+  {1,1,1,1,1,1,1,0}, 
+  {1,1,1,1,0,1,1,0} 
+};
+
+void display_num(int num){
+    for(int i=0;i<8;i++){
+    digitalWrite(pin_array[i],num_array[num][i]);
+  }
+}
+
+void setup() {
+  for(int i=0;i<8;i++){
+    pinMode(pin_array[i],OUTPUT);
+    digitalWrite(pin_array[i],0);
+  }
+}
+
+void loop() {
+  for(int j=0;j<10;j++){
+    display_num(j);
+    delay(500);
+  }
+}
