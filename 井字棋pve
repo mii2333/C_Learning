@@ -1,0 +1,304 @@
+#include<stdio.h>
+#include<stdlib.h>
+#include<time.h>
+#include<windows.h>
+/*
+	智能版
+	computerMove按优先级行动
+	try函数把所有空格都试一遍 
+	1 if computer能三连 下
+	2 if player能三连 堵 
+	3 什么都不能  随机 
+	
+	pve井字棋 
+	
+	1初始化棋盘 全填入-1表示空格子 
+	2读入棋子 2.1如果不是空的-->重新输入 2.2player2替换成电脑 
+	3判断胜负 OK  做成函数 
+*/
+
+const int size=3;
+int mat[size][size];
+
+void initalize(int chooice);
+void play(int choice);
+int judge(void);
+void humanMove(void); 
+void computerMove(void);
+void printBoard(void);
+int tryonce( int piece ,int *row ,int *col );
+
+int main(){
+	
+	srand((unsigned)time(NULL));
+	
+	int choice;
+	printf("================井字棋================\n");
+	printf("		1=先手开局\n		2=后手开局\n		3=退出\n		请选择\n");
+	scanf("%d",&choice);
+	while(choice!=1 && choice!=2 && choice!=3){
+		printf("输入无效！请重新输入\n");
+		scanf("%d",&choice);
+	}
+	while(choice==1 || choice==2){
+		initalize(choice);
+		play(choice);
+		Sleep(300);
+		printf("再来一局吗？\n");
+		Sleep(300);
+		printf("1=先手开局 2=后手开局 3=退出\n");
+		scanf("%d",&choice);
+		while(choice!=1 && choice!=2 && choice!=3){
+			printf("输入无效！请重新输入\n");
+			scanf("%d",&choice);
+		}
+	}
+	Sleep(300);
+	printf("再见~");
+	return 0;
+
+}
+
+void initalize(int choice){
+	
+	int i,j;
+	if(choice==1){
+		printf("你执 X（先手）, 我执 O \n");
+	}else{
+		printf("你执 X , 我执 O（先手）\n");
+	}
+	
+	Sleep(300);
+	printf("下为棋盘示例，输入 1~3 表示行和列，如 2 3 表示第2行第3列\n");
+	Sleep(300);
+
+	for(i=0;i<size;i++){
+		for(j=0;j<size;j++){
+			mat[i][j]=-1;
+		}
+	}
+	printBoard();
+}
+
+void play(int choice){
+	
+	int cnt;
+	for(cnt=1;cnt<10;cnt++){
+		if(choice==1){					//玩家先手 
+			if( cnt%2==1 ){
+				humanMove(); 
+			}
+			else if( cnt%2==0 ){
+				computerMove();
+			}
+		}else{
+			if( cnt%2==0 ){
+				humanMove(); 
+			}
+			else if( cnt%2==1 ){
+				computerMove();
+			}
+		}
+
+		
+		//打印棋盘 
+		printBoard();
+		
+		//判断胜负 
+		int result=judge();
+		if(result!=-1){
+			printf("___________________________________\n");
+			if(result==0){
+				Sleep(500);
+				printf("我赢了，耶！菜就多练\n"); 
+			}else if(result==1){
+				Sleep(500);
+				printf("你赢了，恭喜！\n"); 
+			}
+			return;
+		}
+		
+	}
+	Sleep(500);
+	printf("我们平局\n");
+}
+
+//判断 
+int judge(void){
+	
+	int i,j;
+	int x=0,o=0;//o~number of 0  ,  x~ number of 1
+	//判断行
+	for(i=0;i<size;i++){
+		x=o=0;
+		for(j=0;j<size;j++){
+			if(mat[i][j]==0){
+				o++;
+			}else if(mat[i][j]==1){
+				x++;
+			}
+		}
+		if( x==size ){
+			return 1;
+		}
+		if( o==size ){
+			return 0;
+		}
+	}
+	
+	//判断列 
+	for(j=0;j<size;j++){
+		x=o=0;
+		for(i=0;i<size;i++){
+			if(mat[i][j]==0){
+				o++;
+			}else if(mat[i][j]==1){
+				x++;
+			}
+		}
+		if( x==size ){
+			return 1;
+		}
+		if( o==size ){
+			return 0;
+		}
+	}
+	
+	//判断对角线
+	x=o=0;
+	for(i=0;i<size;i++){
+		if(mat[i][i]==0){
+			o++;
+		}else if(mat[i][i]==1){
+			x++;
+		}
+	}
+	if( x==size ){
+		return 1;
+	}
+	if( o==size ){
+		return 0;
+	}
+	
+	x=o=0;
+	for(i=0;i<size;i++){
+		if(mat[i][size-1-i]==0){
+			o++;
+		}else if(mat[i][size-1-i]==1){
+			x++;
+		}
+	}
+	if( x==size ){
+		return 1;//玩家赢 
+	}
+	if( o==size ){
+		return 0;
+	}
+	
+	
+	return -1;//平局 
+}
+//玩家行动 
+void humanMove(void){
+
+	Sleep(500);
+	printf("轮到你了，请输入第__行，第__列\n");
+		//读入+校验 （仅player） 
+		int i,j; 
+		scanf("%d %d", &i, &j);
+		while( i<1 || i>3 || j<1 || j>3 || mat[i-1][j-1] != -1 ){
+    		printf("输入无效或该格已下过，请重新输入1~3组成的坐标\n");
+    		scanf("%d %d", &i, &j);
+		}
+		i--;
+		j--;
+		mat[i][j] = 1;
+}
+
+//打印棋盘 
+void printBoard(void){
+	int i,j;
+	
+	for(i=0;i<size;i++){
+		printf("+---+---+---+\n");
+		printf("|");
+		for(j=0;j<size;j++){
+			if(mat[i][j]==-1){
+				printf("   |");
+			}else if(mat[i][j]==1){
+				printf(" X |");
+			}else if(mat[i][j]==0){
+				printf(" O |");
+			}
+		}	
+		printf("\n");
+	}
+	printf("+---+---+---+\n");
+	return; 
+}
+
+//电脑行动 
+void computerMove(void){
+	int i=0,j=0;
+//	printf("enter computerMove");
+	if(tryonce(0,&i,&j)){
+		Sleep(500); 
+		printf("......");
+		Sleep(500);
+		printf("我要赢了！");
+		Sleep(500);
+		printf("我下在%d,%d\n",i+1,j+1);
+		Sleep(500);
+		mat[i][j]=0;
+		return;
+	}else if(tryonce(1,&i,&j)){
+		Sleep(500);
+		printf("堵你！");
+		Sleep(500);
+		printf("我下在%d,%d\n",i+1,j+1);
+		Sleep(500);
+		mat[i][j]=0;
+		return;
+	}
+		int ri=rand()%3;
+		int rj=rand()%3;
+		while(mat[ri][rj]!=-1){
+			ri=rand()%3;
+			rj=rand()%3;
+		}
+	Sleep(500);	
+	printf("我下在%d,%d\n",ri+1,rj+1);
+	mat[ri][rj]=0;
+//	printf("out computerMove");
+	return;
+}
+/*
+
+1 随便选一个格下（假装是人或电脑）
+2 judge 返回谁赢 
+	judge()=0电脑赢 break 进入3
+	1玩家赢  break 留下ij坐标 进入3  
+	-1平局 
+3 下在ij坐标上 
+4  随机 
+*/
+int tryonce( int piece ,int *row ,int *col ){
+	int result,a,b;
+	for( a=0;a<size;a++ ){
+		for( b=0;b<size;b++ ){
+			if(mat[a][b]!=-1) {
+				continue;
+			}	
+			mat[a][b]=piece;
+			result=judge();
+			mat[a][b]=-1;
+			
+			if(result==piece){
+				*row=a;
+				*col=b;
+				return 1;
+			}
+		}	
+	}
+	return 0;
+}
