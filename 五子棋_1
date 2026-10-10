@@ -4,7 +4,7 @@
 #include<stdlib.h>
 const int size=9;
 int board[size][size];
-
+char msg[30];
 
 void ini(void);
 int judge(int r,int c,int piece);
@@ -12,6 +12,7 @@ void draw(int r,int c);
 void play(void);
 void computerMove(int *plastRow, int *plastCol);
 int findNearEmpty(int *pRow, int *pCol, int lastRow, int lastCol);
+int wouldWin( int piece ,int *row ,int *col ); 
 
 int main(){
 	
@@ -76,6 +77,7 @@ int judge(int r,int c,int piece){
 void draw(int r,int c){
 	system("cls");
 	
+
 	int i,j;
 	printf("     1   2   3   4   5   6   7   8   9 \n");
 	for(i=0;i<size;i++){
@@ -90,7 +92,10 @@ void draw(int r,int c){
 		printf("\n");
 	}
 	printf("   +---+---+---+---+---+---+---+---+---+\n");
-	printf("刚刚下在了%d %d\n",r+1,c+1);
+	if( msg[0]!='\0' ){
+		printf("%s\n",msg);
+	} 
+	printf("轮到你了\n");
 }
 
 void play(void){
@@ -119,8 +124,11 @@ void play(void){
 			draw(lastCom_r,lastCom_c);
 		}
 
-		
-		result=judge(row-1,col-1,board[row-1][col-1]);
+		if(round == 0){
+		    result = judge(lastHuman_r, lastHuman_c, board[lastHuman_r][lastHuman_c]);
+		}else{
+		    result = judge(lastCom_r, lastCom_c, board[lastCom_r][lastCom_c]);
+		}
 		if(result==0){
 			printf(" o 胜利！\n");
 			return;
@@ -134,12 +142,28 @@ void play(void){
 
 void computerMove(int *plastRow, int *plastCol){
     int newRow, newCol;
+    
+    if( wouldWin(0,&newRow,&newCol) ){
+    	*plastRow = newRow;
+        *plastCol = newCol;
+        board[*plastRow][*plastCol] = 0;
+        sprintf(msg,"我要赢了！我下在 %d %d\n", *plastRow + 1, *plastCol + 1);
+        return;
+	}
+	
+	if( wouldWin(1,&newRow,&newCol) ){
+    	*plastRow = newRow;
+        *plastCol = newCol;
+        board[*plastRow][*plastCol] = 0;
+        sprintf(msg,"堵你！我下在 %d %d\n", *plastRow + 1, *plastCol + 1);
+        return;
+	}
 
     if(findNearEmpty(&newRow, &newCol, *plastRow, *plastCol)){
         *plastRow = newRow;
         *plastCol = newCol;
         board[*plastRow][*plastCol] = 0;
-        printf("我下在 %d %d\n", *plastRow + 1, *plastCol + 1);
+        sprintf(msg,"我下在 %d %d\n", *plastRow + 1, *plastCol + 1);
         return;
     }
 
@@ -152,7 +176,7 @@ void computerMove(int *plastRow, int *plastCol){
     *plastRow = row;
     *plastCol = col;
     board[*plastRow][*plastCol] = 0;
-    printf("我下在 %d %d\n", *plastRow + 1, *plastCol + 1);
+    sprintf(msg,"就随便下在 %d %d 吧\n", *plastRow + 1, *plastCol + 1);
 }
 
 //在上一个电脑落子的附近九宫格寻找空位 
@@ -167,6 +191,28 @@ int findNearEmpty(int *pRow, int *pCol, int lastRow, int lastCol){//pRow ~ 随�
 				return 1;		//找到了空位 
 			}
 		}
+	}
+	return 0;
+}
+
+
+int wouldWin( int piece ,int *row ,int *col ){
+	int result,a,b;
+	for( a=0;a<size;a++ ){
+		for( b=0;b<size;b++ ){
+			if(board[a][b]!=-1) {
+				continue;
+			}	
+			board[a][b]=piece;
+			result=judge(a,b,piece);
+			board[a][b]=-1;
+			
+			if(result==piece){
+				*row=a;
+				*col=b;
+				return 1;
+			}
+		}	
 	}
 	return 0;
 }
