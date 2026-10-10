@@ -13,6 +13,8 @@ void play(void);
 void computerMove(int *plastRow, int *plastCol);
 int findNearEmpty(int *pRow, int *pCol, int lastRow, int lastCol);
 int wouldWin( int piece ,int *row ,int *col ); 
+int evaluateDirection(int r,int c,int piece,int d);
+int evaluatePosition( int row ,int col ,int piece );
 
 int main(){
 	
@@ -141,42 +143,27 @@ void play(void){
 }
 
 void computerMove(int *plastRow, int *plastCol){
-    int newRow, newCol;
-    
-    if( wouldWin(0,&newRow,&newCol) ){
-    	*plastRow = newRow;
-        *plastCol = newCol;
-        board[*plastRow][*plastCol] = 0;
-        sprintf(msg,"我要赢了！我下在 %d %d\n", *plastRow + 1, *plastCol + 1);
-        return;
+    int bestScore=-1,score=0;
+    int bestRow=-1,bestCol=-1;
+    int myScore,yourScore;
+    for( int row=0; row<size; row++ ){
+    	for( int col=0; col<size; col++ ){
+    		if( board[row][col]!=-1 ) continue;
+    		myScore=evaluatePosition(row,col,0);
+    		yourScore=evaluatePosition(row,col,1);
+			score=myScore+yourScore*5/10;
+			if( score>bestScore ){
+				bestScore=score;
+				bestRow=row;
+				bestCol=col;
+			}
+		}
 	}
-	
-	if( wouldWin(1,&newRow,&newCol) ){
-    	*plastRow = newRow;
-        *plastCol = newCol;
-        board[*plastRow][*plastCol] = 0;
-        sprintf(msg,"堵你！我下在 %d %d\n", *plastRow + 1, *plastCol + 1);
-        return;
-	}
 
-    if(findNearEmpty(&newRow, &newCol, *plastRow, *plastCol)){
-        *plastRow = newRow;
-        *plastCol = newCol;
-        board[*plastRow][*plastCol] = 0;
-        sprintf(msg,"我下在 %d %d\n", *plastRow + 1, *plastCol + 1);
-        return;
-    }
-
-    int row, col;
-    do{
-        row = rand() % size;
-        col = rand() % size;
-    }while(board[row][col] != -1);
-
-    *plastRow = row;
-    *plastCol = col;
+    *plastRow = bestRow;
+    *plastCol = bestCol;
     board[*plastRow][*plastCol] = 0;
-    sprintf(msg,"就随便下在 %d %d 吧\n", *plastRow + 1, *plastCol + 1);
+    
 }
 
 //在上一个电脑落子的附近九宫格寻找空位 
@@ -196,23 +183,61 @@ int findNearEmpty(int *pRow, int *pCol, int lastRow, int lastCol){//pRow ~ 随�
 }
 
 
-int wouldWin( int piece ,int *row ,int *col ){
-	int result,a,b;
-	for( a=0;a<size;a++ ){
-		for( b=0;b<size;b++ ){
-			if(board[a][b]!=-1) {
-				continue;
-			}	
-			board[a][b]=piece;
-			result=judge(a,b,piece);
-			board[a][b]=-1;
-			
-			if(result==piece){
-				*row=a;
-				*col=b;
-				return 1;
-			}
-		}	
+
+int evaluateDirection(int r,int c,int piece,int d){
+	int dx[4]={0,1,1,-1};
+	int dy[4]={1,0,1,1};
+	int k,nr,nc;
+	
+	int cnt=1;  //自己的
+	int openEnds=0;  //开放端 
+	
+	//正方向 
+	for(k=1;k<5;k++){
+		nr=r+dx[d]*k;
+		nc=c+dy[d]*k;
+		
+		if(nr<0||nr>=size||nc<0||nc>=size)  break;
+		if( board[nr][nc] == piece )		cnt++;
+		else if( board[nr][nc] == -1 )	  { openEnds++; break; } 
+		else break;    	//对方棋 
 	}
-	return 0;
+	//反方向 
+	for(k=1;k<5;k++){
+		nr=r-dx[d]*k;
+		nc=c-dy[d]*k;
+		
+		if(nr<0||nr>=size||nc<0||nc>=size)  break;
+		if( board[nr][nc] == piece )		cnt++;
+		else if( board[nr][nc] == -1 )	  { openEnds++; break; } 
+		else break;    	//对方棋 
+	}
+	
+		// 根据 count 和 openEnds 给分
+    if(cnt >= 5) return 100000;
+    if(cnt == 4){
+        if(openEnds == 2) return 10000;   // 活四
+        if(openEnds == 1) return 1000;    // 冲四
+        return 0;
+    }
+    if(cnt == 3){
+        if(openEnds == 2) return 1000;    // 活三
+        if(openEnds == 1) return 500;     // 眠三
+        return 0;
+    }
+    if(cnt == 2){
+        if(openEnds == 2) return 100;     // 活二
+        if(openEnds == 1) return 10;      // 眠二
+        return 0;
+    }
+    if(cnt == 1) return 1;
+    return 0;
+}
+
+int evaluatePosition( int row ,int col ,int piece ){
+	int score=0;
+	for( int d=0 ; d<4 ; d++ ){
+		score+=evaluateDirection( row, col, piece, d );
+	}
+	return score;
 }
