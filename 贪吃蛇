@@ -13,6 +13,12 @@
 #define LEFT 'a'
 #define RIGHT 'd'
 #define QUIT 'q'
+#define initLen 3
+typedef struct Map{
+	
+    int data[rowLen][colLen];
+
+}Map;
 
 typedef struct Node{
 	
@@ -26,88 +32,82 @@ typedef struct Snake{
 	
 	Node* head;
 	Node* tail;
-	char direction;	// 行进方向
+	
+	int dr;	// 行进方向
+	int dc;
+	
 	int len; // 蛇长度 
 	
 }Snake;
 
-int map[rowLen][colLen];
+typedef struct Food{
+	
+	int row;
+	int col;
+	int score;
+	
+}Food;
 
-void Map(void);
-void draw( Snake* psnake );
+void initMap(Map* pmap);
+void draw( Snake* psnake , Food* pfood ,Map* pmap);
 Node* createNode( int row, int col );
 void add( Snake* psnake,int row, int col ); 
 void printSnake(Snake* s);
 void move( Snake* psnake );
 int input( Snake* psnake );
-
-int death( Snake* psnake ){
-	if( psnake->head->col>=colLen || psnake->head->col<=0 ||	// 如果撞墙 
-		psnake->head->row>=rowLen || psnake->head->row<=0 )		// 只适合地图中没障碍的 
-	{
-		return 1; 
-	}
-	for( Node* p = psnake->head->next; p; p=p->next ){	//如果撞自己 
-		if( p->col == psnake->head->col && p->row == psnake->head->row ){
-			return 1;	
-		}
-	}
-	return 0;
-}
+int checkDeath( Snake* psnake ,Map* pmap);
+void spawnFood(Snake* psnake,Food* pfood ,Map* pmap);
+int eat(Snake* psnake,Food* pfood);
+void gotoxy(int row,int col);
+int gameLoop(Snake* psnake,Food* pfood,Map* pmap);
+void initGame(Snake* psnake,Food* pfood,Map* pmap);
 
 int main(){
 	
+	srand((unsigned int)time(NULL));
 	Snake snake={0};
-	snake.direction=RIGHT;
-	for( int i=0; i<20 ; i++ ){
-		add(&snake,rowLen/2,colLen/2-i);// 初始化蛇 
-	}
+	Food food;
+	Map map;
 	
-	Map();	
-	draw(&snake);
-	while ( 1 ){
-		
-		if( input(&snake) ){
-			return 0;
-		}
-		move(&snake);
-		if( death(&snake) ){
-			return 0;
-		}
-		draw(&snake);
-	}
+	initGame(&snake,&food,&map);	// 初始化 
+	gameLoop(&snake,&food,&map);
 }
 
-void Map(void){
+void initMap(Map* pmap){
 	for( int i=0; i<rowLen; i++ ){
 		for( int j=0; j<colLen; j++ ){
-			map[i][j]=EMPTY;
-			map[i][0]=WALL;
-			map[i][colLen-1]=WALL;
-			map[0][j]=WALL;
-			map[rowLen-1][j]=WALL;
+			pmap->data[i][j]=EMPTY;
+			pmap->data[i][0]=WALL;
+			pmap->data[i][colLen-1]=WALL;
+			pmap->data[0][j]=WALL;
+			pmap->data[rowLen-1][j]=WALL;
 		}
 	} 
 }
 	
-void draw( Snake* psnake ){
+void draw( Snake* psnake ,Food* pfood,Map* pmap ){
 	Sleep(100);
-	system("cls");
-	int flag;
+	gotoxy(1,1);
+	printf("按q键结束游戏\t\t\t\t\t score:%d\n",psnake->len-initLen); 
+	int flagSnake;
 	for( int i=0; i<rowLen; i++ ){
 		for( int j=0; j<colLen; j++ ){
-			flag=0;
+			flagSnake=0;
 			for( Node* p = psnake->head; p; p=p->next ){
 					if( p->row == i && p->col == j ){
-						flag=1;	
+						flagSnake=1;	//找出哪些点是蛇 
 				 }
 			}
-			if( map[i][j]== WALL ){
+
+			if( pmap->data[i][j]== WALL ){
 				printf("#");
-			}else if( flag == 1) {
+			}else if( pfood->row == i && pfood->col ==j ) {
+				printf("*");//食物 
+				
+			}else if( flagSnake == 1) {
 				printf("o");
 				
-			}else if( map[i][j]== EMPTY ){
+			}else if( pmap->data[i][j]== EMPTY ){
 				printf(" "); 
 			}
 		}
@@ -181,18 +181,32 @@ int input( Snake* psnake ){
 	       key==RIGHT ||
 	       key==QUIT)
 	    {
-	    	if( key==UP && psnake->direction==DOWN) return 0;
-			if(	key==DOWN && psnake->direction==UP ) return 0;
-	    	if(	key==LEFT && psnake->direction==RIGHT ) return 0;
-			if(	key==RIGHT && psnake->direction==LEFT ) return 0;
+	    	if( key==UP && psnake->dr==1 && psnake->dc==0) return 0;
+			if(	key==DOWN && psnake->dr==-1 && psnake->dc==0 ) return 0;
+	    	if(	key==LEFT && psnake->dr==0 && psnake->dc==1 ) return 0;
+			if(	key==RIGHT && psnake->dr==0 && psnake->dc==-1 ) return 0;
 	        if( key == QUIT ) return 1;
 		
 			else{
-				psnake->direction=key;
+				
+				if( key==UP ){
+					psnake->dr=-1;
+					psnake->dc=0;
+				}else if( key==DOWN ){
+					psnake->dr=1;
+					psnake->dc=0;
+				}else if( key==LEFT ){
+					psnake->dr=0;
+					psnake->dc=-1;
+				}else if( key==RIGHT ){
+					psnake->dr=0;
+					psnake->dc=1;
+				}
 				return 0;
 			}
 	    }
 	}
+	return 0;
 }
 
 void move( Snake* psnake ){
@@ -206,23 +220,129 @@ void move( Snake* psnake ){
 		pretail->next=NULL;
 		psnake->tail->next=psnake->head;
 		
-		switch( psnake->direction ){
-			case UP:	psnake->tail->row=psnake->head->row-1;
-						psnake->tail->col=psnake->head->col;
-						break;
-			case DOWN:	psnake->tail->row=psnake->head->row+1;
-						psnake->tail->col=psnake->head->col;
-						break;
-			case LEFT:	psnake->tail->row=psnake->head->row;
-						psnake->tail->col=psnake->head->col-1;
-						break; 
-			case RIGHT:	psnake->tail->row=psnake->head->row;
-						psnake->tail->col=psnake->head->col+1;
-						break; 
-		}
+		psnake->tail->row=psnake->head->row+psnake->dr;//按方向接 
+		psnake->tail->col=psnake->head->col+psnake->dc;
 			
 		psnake->head=psnake->tail;
 		psnake->tail=pretail;
-		
-
 } 
+
+
+int checkDeath( Snake* psnake ,Map* pmap){
+	if(psnake->head->col>=colLen || psnake->head->col<=0 ||	// 如果跑出地图 
+		psnake->head->row>=rowLen || psnake->head->row<=0)
+	{
+		return 1;
+	}
+	if(	pmap->data[psnake->head->row][psnake->head->col] == WALL )	// 如果撞墙
+	{
+		return 1; 
+	}
+	for( Node* p = psnake->head->next; p; p=p->next ){	//如果撞自己 
+		if( p->col == psnake->head->col && p->row == psnake->head->row ){
+			return 1;	
+		}
+	}
+	return 0;
+}
+
+void spawnFood(Snake* psnake,Food* pfood,Map* pmap){
+	int flag;	
+	int randRow;
+	int randCol;
+	
+	while( 1 ){
+		
+		flag=0; 
+		randRow=rand()%rowLen;
+		randCol=rand()%colLen;
+		
+		if( pmap->data[randRow][randCol] == WALL ){	// 如果和墙重合 跳过本轮循环 
+			continue;
+		}
+		for( Node* p = psnake->head->next; p; p=p->next ){
+			if( p->row == randRow && p->col == randCol ){	//如果和蛇重合  标志不改变 
+			flag=1;
+			}
+		}
+		if( flag==0 ){
+			break;
+		}
+	} 
+
+		//不能和墙和蛇重合 
+	while( pmap->data[randRow][randCol] == WALL || flag==1 ){
+		  
+		randRow=rand()%rowLen;
+		randCol=rand()%colLen;
+		
+		for( Node* p = psnake->head->next; p; p=p->next ){
+			if( p->row == randRow && p->col == randCol ){
+				flag=1;
+			}
+		}
+		   	
+	}
+
+	
+	pfood->row=randRow;
+	pfood->col=randCol;
+	
+	
+}
+
+int eat(Snake* psnake,Food* pfood){ //给蛇加分 给食物清除 
+	for( Node* p = psnake->head; p; p=p->next ){
+		if( p->row == pfood->row && p->col == pfood->col ){
+			pfood->col=NULL;
+			pfood->row=NULL;
+			return 1;//吃到了 
+		}
+	}	
+	return 0;
+}
+
+void gotoxy(int row,int col){
+	HANDLE hOut;
+
+    hOut=GetStdHandle(STD_OUTPUT_HANDLE);
+
+    COORD pos;
+
+    pos.X=row;
+    pos.Y=col;
+
+    SetConsoleCursorPosition(hOut,pos);
+}
+
+void initGame(Snake* psnake,Food* pfood,Map* pmap){
+	
+	psnake->dr=0;
+	psnake->dc=1;
+	
+	for( int i=0; i<initLen ; i++ ){	// 初始化蛇 
+		add(psnake,rowLen/2,colLen/2-i);
+	}
+	
+	initMap(pmap);
+	spawnFood(psnake,pfood,pmap);
+	draw(psnake,pfood,pmap);
+}
+
+int gameLoop(Snake* psnake,Food* pfood,Map* pmap){
+	while ( 1 ){
+		
+		if( input(psnake) ){
+			return 0;
+		}
+		move(psnake);
+		if( checkDeath(psnake,pmap) ){
+			return 0;
+		}
+		if( eat(psnake,pfood) ){
+			add(psnake,psnake->tail->row,psnake->tail->col);
+			spawnFood(psnake,pfood,pmap);
+		}
+		draw(psnake,pfood,pmap);
+	}
+}
