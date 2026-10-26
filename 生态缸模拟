@@ -1,0 +1,160 @@
+#include<stdio.h>
+#include<math.h>
+#include<windows.h>
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
+#define size 5
+typedef struct{
+	double temperature;
+	double light; //0~100
+	double water;//水分、湿度 
+	double soilNutri;//土壤肥力 
+}Environment;
+
+typedef struct{
+	double biomass[size][size];//生物量 
+	Environment env;
+}Map; 
+
+typedef struct Species{
+	Environment env;	
+}Species;
+
+void gotoxy(int row,int col){
+	HANDLE hOut;
+
+    hOut=GetStdHandle(STD_OUTPUT_HANDLE);
+
+    COORD pos;
+
+    pos.X=row;
+    pos.Y=col;
+
+    SetConsoleCursorPosition(hOut,pos);
+}
+
+void iniMap(Map* pmap){
+	for( int x=0; x<size; x++ ){
+		for( int y=0; y<size; y++ ){
+			pmap->biomass[x][y]=0.0;	
+		}
+	}
+	pmap->env.temperature = 20;
+    pmap->env.light = 30;
+    pmap->env.water = 50;
+    pmap->env.soilNutri = 50;
+    
+	pmap->biomass[3][1] = 1.0;
+}
+
+double suitCalculate(Map* pmap,Species* pS){
+	double suitability;
+	double fT=MAX(0,1-fabs(pmap->env.temperature - pS->env.temperature)/15);
+	double fL=MAX(0,1-fabs(pmap->env.light - pS->env.light)/20);
+	double fW=MAX(0,1-fabs(pmap->env.water - pS->env.water)/10);
+	double fN=MAX(0,1-fabs(pmap->env.soilNutri - pS->env.soilNutri)/20);
+	
+	suitability=(fT+fL+fW+fN)/4;
+	return suitability;
+}
+
+void spread(Map* pmap,Map* pnextMap,int oldX,int oldY){
+	int dx[8]={1,0,-1,0,1,1,-1,-1};
+	int dy[8]={0,1,0,-1,1,-1,1,-1};
+	int x,y;
+	for(int i=0;i<8;i++){
+		x=oldX+dx[i];
+		y=oldY+dy[i];
+		if( x<0 || x>=size || y<0 || y>=size ){
+			continue;
+		}
+		if( pmap->biomass[x][y] == 0 &&
+			pnextMap->biomass[x][y] == 0 ){
+				
+			pnextMap->biomass[x][y] = 1.0;
+		}
+	}
+}
+
+int main(){
+	
+	Map map;
+	Species moss = {
+	    {20, 30, 50, 50}
+	};
+	iniMap(&map); 
+
+	double growRate=0.2;
+	double suitability=0.8;
+	double K=10.0;
+	double growth;
+	
+	printf("第 %d 轮：\n", 0);
+
+        for(int x = 0; x < size; x++) {
+            for(int y = 0; y < size; y++) {
+                if(map.biomass[x][y] == 0) {
+                    printf("    ");
+                }
+                else {
+                    printf("%.2f ", map.biomass[x][y]);
+                }
+            }
+            printf("\n");
+        }
+	for(int t=1;t<=100;t++){
+		//复制地图 
+		Map nextMap;
+		for(int i=0;i<size; i++ ){
+			for(int j=0; j<size;j++){
+				nextMap.biomass[i][j]=map.biomass[i][j];
+			}
+		}
+		//计算增长 
+		for(int i=0;i<size;i++){
+			for(int j=0;j<size;j++){
+				if( map.biomass[i][j] > 0 ){
+					suitability=suitCalculate(&map,&moss);
+					growth=growRate*suitability
+					*map.biomass[i][j]*(1-map.biomass[i][j]/K);
+					nextMap.biomass[i][j]+=growth;
+				}	
+			}
+		}
+		for(int i=0;i<size;i++){
+			for(int j=0;j<size;j++){
+				if( map.biomass[i][j] > K/2 ){
+					spread(&map,&nextMap,i,j);
+				}
+			}
+		}
+		//更新地图 
+		for(int i=0;i<size; i++ ){
+			for(int j=0; j<size;j++){
+				map.biomass[i][j]=nextMap.biomass[i][j];
+			}
+		}
+		
+	
+        // 打印地图
+        gotoxy(0,0);
+        Sleep(100);
+        printf("第 %d 轮：\n", t);
+
+        for(int x = 0; x < size; x++) {
+            for(int y = 0; y < size; y++) {
+                if(map.biomass[x][y] == 0) {
+                    printf("   ");
+                }
+                else {
+                    printf("%.1lf ", map.biomass[x][y]);
+                }
+            }
+            printf("\n");
+        }
+	}
+
+	
+    return 0;
+}
+
+
